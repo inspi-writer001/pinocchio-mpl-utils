@@ -138,6 +138,15 @@ pub fn resize_or_reallocate_account_raw<'a>(
             }
             .invoke()?;
         }
+    } else if target_account.owner() == system_program.key() {
+        let lamports_needed = new_minimum_balance.saturating_sub(current_lamports);
+
+        Transfer {
+            from: target_account,
+            to: funding_account,
+            lamports: lamports_needed,
+        }
+        .invoke()?;
     } else {
         // Calculate excess. If current < new_min (underfunded), this returns 0.
         let lamports_excess = current_lamports.saturating_sub(new_minimum_balance);
