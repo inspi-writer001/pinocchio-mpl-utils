@@ -89,8 +89,6 @@ pub fn create_or_allocate_account_raw<'a>(
         }
 
         // 2. Allocate / Resize
-        // Corresponds to: system_instruction::allocate
-
         log!("Allocate space for the account");
         Allocate {
             account: new_account_info,
@@ -99,8 +97,6 @@ pub fn create_or_allocate_account_raw<'a>(
         .invoke_signed(&[signer])?;
 
         // 3. Assign (Set Owner)
-        // Corresponds to: system_instruction::assign
-
         log!("Assign the account to the owning program");
         Assign {
             account: new_account_info,
@@ -133,7 +129,7 @@ pub fn resize_or_reallocate_account_raw<'a>(
         if lamports_needed > 0 {
             Transfer {
                 from: funding_account,
-                lamports: lamports_needed, // Use the specific shortfall
+                lamports: lamports_needed,
                 to: target_account,
             }
             .invoke()?;
