@@ -10,7 +10,7 @@ use pinocchio::{
 };
 use pinocchio_mpl_utils::{
     assert_initialized, assert_owned_by, assert_owner_in, assert_rent_exempt, assert_signer,
-    cmp_pubkeys,
+    cmp_pubkeys, create_or_allocate_account_raw,
 };
 use pinocchio_system::instructions::CreateAccount;
 use pinocchio_token::state::TokenAccount;
@@ -39,9 +39,9 @@ pub fn process_intialize(accounts: &[AccountInfo], data: &[u8]) -> ProgramResult
         return Err(pinocchio::program_error::ProgramError::NotEnoughAccountKeys);
     };
 
-    let seeds = &[b"global_state", signer.key().as_ref()];
+    let seeds_array = &[b"global_state", signer.key().as_ref()];
     // derive state account onchain
-    let (derived_pda, bump) = pubkey::find_program_address(seeds, &crate::ID);
+    let (derived_pda, bump) = pubkey::find_program_address(seeds_array, &crate::ID);
 
     // check that keys are equal using cmp_key 🔴🔴🔴🔴🔴🔴🔴
     cmp_pubkeys(state_account.key(), &derived_pda);
@@ -67,15 +67,28 @@ pub fn process_intialize(accounts: &[AccountInfo], data: &[u8]) -> ProgramResult
 
     let signers = Signer::from(&seeds);
 
+    // this is cheaper - totals the instruction to `3079` CUs
     // create account
-    CreateAccount {
-        from: signer,
-        lamports: mininum_balance,
-        owner: &crate::ID,
-        space: GlobalState::LEN as u64,
-        to: state_account,
-    }
-    .invoke_signed(&[signers])?; // to change this to the create_account in pinocchio_mpl_utils
+    // CreateAccount {
+    //     from: signer,
+    //     lamports: mininum_balance,
+    //     owner: &crate::ID,
+    //     space: GlobalState::LEN as u64,
+    //     to: state_account,
+    // }
+    // .invoke_signed(&[signers])?; // to change this to the create_account in pinocchio_mpl_utils
+
+    // this is more expensive - create account with the helper function 🔴🔴🔴🔴🔴🔴🔴
+    // the CreateAccount inside this totals the instructions to `4985` CUs
+    // using the 3 step account creation (Transfer, Allocate, Assign) totals `9226` CUs
+    create_or_allocate_account_raw(
+        crate::ID,
+        state_account,
+        system_program,
+        signer,
+        GlobalState::LEN,
+        seeds_array,
+    )?;
 
     // assert who owns the account 🔴🔴🔴🔴🔴🔴🔴
     assert_owned_by(state_account, &crate::ID, ProgramError::IllegalOwner)?;

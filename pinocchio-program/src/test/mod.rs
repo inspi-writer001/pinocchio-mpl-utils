@@ -80,6 +80,10 @@ mod tests {
             &PROGRAM_ID,
         );
 
+        // TODO comment this line to use just CreateAccount instead of (Transfer, Allocate, Assign) 🔴🔴🔴🔴🔴🔴🔴
+        // svm.airdrop(&global_state.0, 10 * LAMPORTS_PER_SOL)
+        //     .expect("Airdrop failed");
+
         let associated_token_program = ASSOCIATED_TOKEN_PROGRAM_ID.parse::<Pubkey>().unwrap();
         let token_program = TOKEN_PROGRAM_ID;
         let system_program = solana_sdk_ids::system_program::ID;

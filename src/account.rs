@@ -61,53 +61,53 @@ pub fn create_or_allocate_account_raw<'a>(
     seed_buffer[total_seeds] = Seed::from(&bump_binding);
 
     let active_seeds = &seed_buffer[0..=total_seeds];
-    let signer = Signer::from(active_seeds);
 
-    CreateAccount {
-        from: payer_info,
-        lamports: required_lamports,
-        owner: &program_id,
-        space: size as u64,
-        to: new_account_info,
+    // [ if lamports exists, do the transfer, allocate, then assign ] else just do the create account
+
+    if new_account_info.lamports() == 0 && new_account_info.data_is_empty() {
+        let signer = Signer::from(active_seeds);
+        CreateAccount {
+            from: payer_info,
+            lamports: required_lamports,
+            owner: &program_id,
+            space: size as u64,
+            to: new_account_info,
+        }
+        .invoke_signed(&[signer])?;
+    } else {
+        let signer = Signer::from(active_seeds);
+        // 1. Transfer lamports
+        if required_lamports > 0 {
+            log!("Transfer {} lamports to the new account", required_lamports);
+
+            Transfer {
+                from: payer_info,
+                lamports: required_lamports,
+                to: new_account_info,
+            }
+            .invoke()?;
+        }
+
+        // 2. Allocate / Resize
+        // Corresponds to: system_instruction::allocate
+
+        log!("Allocate space for the account");
+        Allocate {
+            account: new_account_info,
+            space: size as u64,
+        }
+        .invoke_signed(&[signer])?;
+
+        // 3. Assign (Set Owner)
+        // Corresponds to: system_instruction::assign
+
+        log!("Assign the account to the owning program");
+        Assign {
+            account: new_account_info,
+            owner: &program_id,
+        }
+        .invoke_signed(&[Signer::from(active_seeds)])?;
     }
-    .invoke_signed(&[signer])?;
-
-    // or if we'd like to use the Allocate and Assign as in the previous mpl-utils implementation
-    // useful for cases where the account to be created already has some lamports and wouldn't want CreateAccount throw an error
-    // TODO add an if - else [ if lamports exists, do the transfer, allocate, then assign ] else just do the create account
-
-    // // 1. Transfer lamports
-    //   if required_lamports > 0 {
-    //     log!("Transfer {} lamports to the new account", required_lamports);
-
-    //     Transfer {
-    //         from: payer_info,
-    //         lamports: required_lamports,
-    //         to: new_account_info,
-    //     }
-    //     .invoke()?;
-    // }
-
-    // // 2. Allocate / Resize
-    // // Corresponds to: system_instruction::allocate
-
-    // log!("Allocate space for the account");
-    // Allocate {
-    //     account: new_account_info,
-    //     space: size as u64,
-    // }
-    // .invoke_signed(&[signer])?;
-
-    // // 3. Assign (Set Owner)
-    // // Corresponds to: system_instruction::assign
-
-    // log!("Assign the account to the owning program");
-    // Assign {
-    //     account: new_account_info,
-    //     owner: &program_id,
-    // }
-    // .invoke_signed(&[signer])?;
-
     Ok(())
 }
 
