@@ -5,6 +5,9 @@ use pinocchio::{
     ProgramResult,
 };
 use pinocchio_pubkey::pubkey;
+use pinocchio_token::state::{AccountState as Account, TokenAccount};
+
+#[cfg(feature = "token-2022")]
 use pinocchio_token_2022::state::{AccountState as Account, TokenAccount};
 
 use crate::assert_initialized;
@@ -16,7 +19,10 @@ pub static SPL_TOKEN_PROGRAM_IDS: [Pubkey; 2] = [
 ];
 
 impl Pack for TokenAccount {
+    #[cfg(feature = "token-2022")]
     const LEN: usize = Self::BASE_LEN;
+
+    const LEN: usize = Self::LEN;
 
     unsafe fn from_bytes_unchecked(bytes: &[u8]) -> &Self {
         Self::from_bytes_unchecked(bytes)
