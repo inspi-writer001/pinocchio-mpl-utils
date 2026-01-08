@@ -45,12 +45,6 @@ impl<'a> ToTokenAccount<'a> for AccountInfo {
     }
 }
 
-// impl<'a> ToTokenAccount<'a> for TokenAccount {
-//     fn to_token_account(&'a self) -> Ref<'a, TokenAccount> {
-//         self // we can't just return self or *self[moving out of scope] in a no-copy environment
-//     }
-// }
-
 pub fn assert_token_program_matches_package(
     token_program_info: &AccountInfo,
     error: impl Into<ProgramError>,
@@ -70,7 +64,6 @@ pub fn assert_token_program_matches_package(
 /// * it's owner matches the provided owner
 /// * it's mint matches the provided mint
 /// * it holds more than than 0 tokens of the given mint.
-/// Accepts either an &AccountInfo or an Account for token_account parameter.
 pub fn assert_holder(
     token_account: &AccountInfo, // we're using just AccountInfo here since we only want to work with already parsed AccountInfo and not AccountInfo | TOkenAccount
     owner_info: &AccountInfo,
